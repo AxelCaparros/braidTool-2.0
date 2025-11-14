@@ -1,0 +1,153 @@
+import maya.cmds as cmds
+import maya.OpenMaya as om
+import maya.mel
+
+# ----------------------------
+# Global Variables
+# ----------------------------
+GLOBAL_VARIABLE_ATTR_T = 'hairSystemShape1.clumpTwist'
+GLOBAL_VARIABLE_ATTR = 'hairSystemShape1.clumpWidth'
+
+# ----------------------------
+# Function Definitions
+# ----------------------------
+
+def sliderChangeFunctionT(value):
+    if cmds.objExists(GLOBAL_VARIABLE_ATTR_T):
+        cmds.setAttr(GLOBAL_VARIABLE_ATTR_T, value)
+
+def sliderChangeFunction(value):
+    if cmds.objExists(GLOBAL_VARIABLE_ATTR):
+        cmds.setAttr(GLOBAL_VARIABLE_ATTR, value)
+
+def dynCurve():
+    if not cmds.ls(sl=True):
+        print("SELECT YOUR CURVES!")
+        return
+
+    if cmds.ls(sl=True):
+        if cmds.objExists('hairSystem1'):
+            cmds.delete('hairSystem1')
+
+        cmds.ls(selection=True, ap=True)
+        maya.mel.eval('makeCurvesDynamic 2 { "1", "0", "1", "0", "1"}')
+        cmds.group('nucleus1', 'pfxHair1', 'hairSystem1', 'follicle*', 'hairSystem1Follicles', n='hairSystem_GRP')
+        cmds.hide(cmds.ls(type='nurbsCurve'))
+
+def attributesSet():
+    cmds.select("fol*")
+    for p in cmds.ls(sl=True):
+        cmds.setAttr('%s.braid' % p, 1)
+
+    cmds.select("hairSystemShape*")
+    for p in cmds.ls(sl=True):
+        cmds.setAttr('%s.hairsPerClump' % p, 3)
+        cmds.setAttr('%s.clumpWidth' % p, 1)
+        cmds.setAttr('%s.subSegments' % (p), 20)
+
+def convert():
+    """Convert PaintFX to braid curves"""
+    cmds.select("pfxHair*")
+    cmds.ls(sl=True)
+    maya.mel.eval('doPaintEffectsToCurve(0)')
+    cmds.select('curve*')
+    maya.mel.eval('searchReplaceNames "curve" "curveBraid" "hierarchy"')
+    print("? Converted PaintFX strokes to braid curves.")
+
+import pymel.core as pm
+
+def nurbsToPolyPreset(*args):
+    """
+    Converts selected NURBS curves to polygon meshes using a preset.
+    Keeps construction history and organizes into a group.
+    """
+    curves = pm.ls(selection=True, type='transform')
+    if not curves:
+        pm.warning("Select your NURBS curves first!")
+        return
+
+    # Group for all converted polys
+    poly_grp = pm.group(empty=True, name="NurbsToPoly_grp")
+
+    for curve in curves:
+        shapes = curve.getShapes()
+        if not shapes:
+            pm.warning(f"No shape found on {curve}. Skipping.")
+            continue
+        shape = shapes[0]
+
+        # Convert to polygon with preset parameters
+        poly_mesh = pm.nurbsToPoly(
+            shape,
+            ch=True,       # keep history
+            f=3,           # type: 3 = quads
+            pt=1,          # keep pivot
+            ut=1, vt=1,    # keep UVs
+            mnd=0          # merge nearby vertices
+        )[0]
+
+        pm.parent(poly_mesh, poly_grp)
+
+    pm.select(poly_grp)
+    print("? NURBS converted to polygon mesh with preset. Group:", poly_grp)
+
+
+# Example usage in a UI button:
+# pm.button(label="Nurbs To Poly Preset", command=nurbsToPolyPreset)
+
+
+# ----------------------------
+# UI Creation
+# ----------------------------
+
+def createUI():
+    if cmds.window("braidWin", exists=True):
+        cmds.deleteUI("braidWin")
+
+    myWindow = cmds.window("braidWin", t="Braid Tool v0.06", w=320, h=500)
+    cmds.columnLayout(adjustableColumn=True)
+
+    cmds.text(label=' Select Curves (first step)', align='left', fn="boldLabelFont")
+    cmds.text(label='Note: Reopen window after creating dynamic curves to attach gradients', align='left', fn="smallBoldLabelFont")
+
+    cmds.separator(h=10, style='double')
+    cmds.button(h=45, l="Create Dynamic Curve", c="dynCurve()")
+
+    cmds.separator(h=10, style='double')
+    cmds.button(h=45, label='Make Braid', c="attributesSet()")
+
+    cmds.separator(h=10, style='double')
+    cmds.button(h=45, label='PaintFX Braid Curves', c="convert()")
+
+    cmds.separator(h=10, style='double')
+    cmds.floatSliderGrp(label='Clump Twist', field=True, minValue=0.00, maxValue=10.00, s=.01, changeCommand=sliderChangeFunctionT)
+
+    cmds.separator(h=10, style='double')
+    cmds.floatSliderGrp(label='Clump Width', field=True, minValue=0.00, maxValue=10.00, s=.01, changeCommand=sliderChangeFunction)
+
+    cmds.separator(h=10, style='double')
+
+    if cmds.objExists('hairSystemShape1'):
+        cmds.text(label='Clump Width Scale')
+        myGradientControl = cmds.gradientControl()
+        cmds.gradientControl(myGradientControl, e=True, at='hairSystemShape1.clumpWidthScale')
+
+        cmds.separator(h=10, style='double')
+
+        cmds.text(label='Clump Curl')
+        myGradientControl = cmds.gradientControl()
+        cmds.gradientControl(myGradientControl, e=True, at='hairSystemShape1.clumpCurl')
+
+    cmds.separator(h=20, style='double')
+
+    # Final button: NURBS to Poly
+    cmds.text(label="--- Final Output ---", align='center', fn="boldLabelFont")
+    cmds.button(h=45, bgc=(0.7, 0.9, 1.0), label='NURBS To Poly Preset', c=nurbsToPolyPreset)
+
+    cmds.showWindow()
+
+# ----------------------------
+# Start
+# ----------------------------
+
+createUI()
