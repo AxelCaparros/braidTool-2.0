@@ -1,0 +1,377 @@
+if (`window -exists Extruder`)
+{
+	deleteUI -window Extruder;
+}
+
+string $WExtr = `window -title "Curves Extruder"
+				-wh 420 245
+				Extruder`;
+				columnLayout -w 420 -cal "left";
+				
+	radioButtonGrp
+-numberOfRadioButtons 3
+-label "Shape Type"
+-labelArray3 "Circle" "C rand sections" "User"
+-select 1
+-cc "changeUI()"
+myRadBtnGrp;
+
+radioButtonGrp
+-numberOfRadioButtons 2
+-label "Circle Curve_Type"
+-labelArray2 "Cubic" "linear" -sl 1
+CurveType;
+
+intSliderGrp
+-label "Circle Sections"
+-field true
+-max 20
+-min 3
+-fmx 10000
+-v 8
+-adj 1
+-ad2 2
+spanslider;
+
+intSliderGrp
+-label "Sections min"
+-field true
+-max 20
+-min 3
+-fmx 10000
+-v 3
+-adj 1
+-ad2 2
+-en off
+spanslidermin;
+
+intSliderGrp
+-label "Sections max"
+-field true
+-max 20
+-min 3
+-fmx 10000
+-v 8
+-adj 1
+-ad2 2
+-en off
+spanslidermax;
+
+floatSliderGrp
+-label "Taper_Min"
+-field true
+-max 1
+-min 0
+-v .5
+-adj 1
+-ad2 2
+-pre 3
+Scaleslider;
+
+floatSliderGrp
+-label "Taper_Max"
+-field true
+-max 1
+-min 0
+-v .5
+-adj 1
+-ad2 2
+-pre 3
+ScalesliderMax;
+
+floatSliderGrp
+-label "Radius_Min"
+-field true
+-max 10
+-min .01
+-fmx 100
+-fmn -100
+-v 0.5
+-adj 1
+-ad2 2
+-pre 3
+Radius_Min;
+
+floatSliderGrp
+-label "Radius_Max"
+-field true
+-max 10
+-min .01
+-fmx 100
+-fmn -100
+-v 1
+-adj 1
+-ad2 2
+-pre 3
+Radius_Max;
+
+rowColumnLayout -nc 3 -cw 1 80 -cw 2 180 -cw 3 120;
+separator -vis off;
+
+string $Field = `textField -ed off objectTextField`;
+button -l "<< Select User Curve" -ann "pick the selected curve" -c "SlectUserCurve(0)";
+setParent ..;
+rowColumnLayout -nc 3 -cw 1 80 -cw 2 300 -cw 3 80;
+separator -vis off;
+button -l "Extrude" -ann "Extrude" -c "ExtrudeCurves()";
+
+					
+showWindow $WExtr;
+
+
+proc SlectUserCurve(int $k)
+{
+	if($k == 0){
+	string $selnum[] = `ls -sl`;
+	if(size($selnum) > 1 || size($selnum) < 1)
+	error ("Please Select Only One Curve");
+	else{
+string $sel2[] =`ls -sl`;
+string $obj = $sel2[0];
+pickName($obj);
+intSliderGrp -e -en off spanslidermin;
+intSliderGrp -e -en off spanslidermax;
+intSliderGrp -e -en off spanslider;
+floatSliderGrp -e -en off Radius_Min;
+floatSliderGrp -e -en off Radius_Max;
+floatSliderGrp -e -en off Scaleslider;
+floatSliderGrp -e -en off ScalesliderMax;
+radioButtonGrp -e -en off CurveType;
+}
+}
+}
+
+proc pickName (string $name)
+{
+	textField -edit -text $name objectTextField;
+	select $name;
+	CenterPivot;
+	select -cl;
+	if (`radioButtonGrp -q -select myRadBtnGrp` == 1){
+	radioButtonGrp -e -select 3 myRadBtnGrp;}
+	if (`radioButtonGrp -q -select CurveType` == 3){
+	radioButtonGrp -e -select 1 CurveType;
+	}
+}
+
+////////////////////////////////////////////////////
+proc int getsections()
+{
+int $section = `intSliderGrp -q -v spanslider`;
+return $section;
+};
+
+proc float getscale()
+{
+float $scale = `floatSliderGrp -q -v Scaleslider`;
+return $scale;
+};
+
+proc float getscaleMax()
+{
+float $scaleM = `floatSliderGrp -q -v ScalesliderMax`;
+return $scaleM;
+};
+
+proc float getsection_min()
+{
+float $minspan = `intSliderGrp -q -v spanslidermin`;
+return $minspan;
+};
+
+proc float getsection_max()
+{
+float $maxspan = `intSliderGrp -q -v spanslidermax`;
+return $maxspan;
+};
+
+proc float getradmin()
+{
+float $RadMin = `floatSliderGrp -q -v Radius_Min`;
+return $RadMin;
+};
+
+proc float getradmax()
+{
+float $RadMax = `floatSliderGrp -q -v Radius_Max`;
+return $RadMax;
+};
+
+////////////////////////////////////////////////////////////
+//Change_UI:
+proc changeUI()
+{
+if (`radioButtonGrp -q -select myRadBtnGrp` == 2){
+
+intSliderGrp -e -en on spanslidermin;
+intSliderGrp -e -en on spanslidermax;
+intSliderGrp -e -en off spanslider;
+floatSliderGrp -e -en on Radius_Min;
+floatSliderGrp -e -en on Radius_Max;
+floatSliderGrp -e -en on Scaleslider;
+floatSliderGrp -e -en on ScalesliderMax;
+radioButtonGrp -e -en on CurveType;
+};
+
+if (`radioButtonGrp -q -select myRadBtnGrp` == 1){
+
+intSliderGrp -e -en off spanslidermin;
+intSliderGrp -e -en off spanslidermax;
+intSliderGrp -e -en on spanslider;
+floatSliderGrp -e -en on Radius_Min;
+floatSliderGrp -e -en on Radius_Max;
+floatSliderGrp -e -en on Scaleslider;
+floatSliderGrp -e -en on ScalesliderMax;
+radioButtonGrp -e -en on CurveType;
+};
+if (`radioButtonGrp -q -select myRadBtnGrp` == 3){
+
+intSliderGrp -e -en off spanslidermin;
+intSliderGrp -e -en off spanslidermax;
+intSliderGrp -e -en off spanslider;
+floatSliderGrp -e -en off Radius_Min;
+floatSliderGrp -e -en off Radius_Max;
+floatSliderGrp -e -en off Scaleslider;
+floatSliderGrp -e -en off ScalesliderMax;
+radioButtonGrp -e -en off CurveType;
+};
+}
+
+
+
+//////////////////////////////////////////////////////////
+
+proc ExtrudeCurves()
+{
+//string $sel[] = `ls -sl`;
+
+if (`radioButtonGrp -q -select myRadBtnGrp` == 1){
+
+if (`radioButtonGrp -q -select CurveType` == 1){
+
+
+string $sel[] = `ls -sl`;
+string $current;
+float $curvesections = getsections();
+float $curvescale = getscale();
+float $curvescaleMax = getscaleMax();
+
+for ($current in $sel)
+{
+float $taper_rand = rand($curvescale,$curvescaleMax);
+float $ShapeRad = rand(getradmin(),getradmax());
+float $startTangent[] = `pointOnCurve -pr 0 -nt $current`;
+float $startPoint[] = `pointOnCurve -pr 0 -p $current`;
+string $profileCircle[] = `circle -center $startPoint[0] $startPoint[1] $startPoint[2]
+-radius $ShapeRad
+-s $curvesections
+-normal $startTangent[0] $startTangent[1] $startTangent[2]`;
+circle -edit -n $profileCircle[0];
+CenterPivot;
+string $surface[] = `extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale $taper_rand -rsp 1 $profileCircle[0] $current`;
+CenterPivot;
+};
+};
+
+
+if (`radioButtonGrp -q -select CurveType` == 2){
+string $sel[] = `ls -sl`;
+string $current;
+float $curvesections = getsections();
+float $curvescale = getscale();
+float $curvescaleMax = getscaleMax();
+
+for ($current in $sel)
+{
+float $taper_rand = rand($curvescale,$curvescaleMax);
+float $ShapeRad = rand(getradmin(),getradmax());
+float $startTangent[] = `pointOnCurve -pr 0 -nt $current`;
+float $startPoint[] = `pointOnCurve -pr 0 -p $current`;
+
+string $profileCircle[] = `circle -center $startPoint[0] $startPoint[1] $startPoint[2]
+-radius $ShapeRad
+-s $curvesections
+-d 1
+-normal $startTangent[0] $startTangent[1] $startTangent[2]`;
+circle -edit -n $profileCircle[0];
+CenterPivot;
+string $surface[] = `extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale $taper_rand -rsp 1 $profileCircle[0] $current`;
+CenterPivot;
+};};};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+if (`radioButtonGrp -q -select myRadBtnGrp` == 2){
+
+if (`radioButtonGrp -q -select CurveType` == 1){
+
+
+string $sel[] = `ls -sl`;
+string $current;
+float $curvescale = getscale();
+float $curvescaleMax = getscaleMax();
+
+for ($current in $sel)
+{
+float $taper_rand = rand($curvescale,$curvescaleMax);
+float $ShapeRad = rand(getradmin(),getradmax());
+int $sectionsrandamizationtool =rand (getsection_min(),getsection_max());
+float $startTangent[] = `pointOnCurve -pr 0 -nt $current`;
+float $startPoint[] = `pointOnCurve -pr 0 -p $current`;
+string $profileCircle[] = `circle -center $startPoint[0] $startPoint[1] $startPoint[2]
+-radius $ShapeRad
+-s $sectionsrandamizationtool
+-normal $startTangent[0] $startTangent[1] $startTangent[2]`;
+circle -edit -n $profileCircle[0];
+CenterPivot;
+string $surface[] = `extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale $taper_rand -rsp 1 $profileCircle[0] $current`;
+CenterPivot;
+};};
+
+
+
+if (`radioButtonGrp -q -select CurveType` == 2){
+string $sel[] = `ls -sl`;
+string $current;
+float $curvescale = getscale();
+float $curvescaleMax = getscaleMax();
+
+for ($current in $sel)
+{
+float $taper_rand = rand($curvescale,$curvescaleMax);
+int $sectionsrandamizationtool =rand (getsection_min(),getsection_max());
+float $ShapeRad = rand(getradmin(),getradmax());
+float $startTangent[] = `pointOnCurve -pr 0 -nt $current`;
+float $startPoint[] = `pointOnCurve -pr 0 -p $current`;
+
+string $profileCircle[] = `circle -center $startPoint[0] $startPoint[1] $startPoint[2]
+-radius $ShapeRad
+-s $sectionsrandamizationtool
+-d 1
+-normal $startTangent[0] $startTangent[1] $startTangent[2]`;
+circle -edit -n $profileCircle[0];
+CenterPivot;
+string $surface[] = `extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale $taper_rand -rsp 1 $profileCircle[0] $current`;
+CenterPivot;
+};
+};};
+
+if (`radioButtonGrp -q -select myRadBtnGrp` == 3){
+string $nameofchosenCurve =`textField -q -text objectTextField`;
+string $sel[] = `ls -sl`;
+string $current;
+for ($current in $sel)
+{
+
+CenterPivot;
+string $surface[] = `extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 1 -upn 1 -rotation 0 -scale 1 -rsp 1 $nameofchosenCurve $current`;
+CenterPivot;
+}
+};
+}
+
+
+
+
+
+
