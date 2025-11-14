@@ -3,6 +3,8 @@ This is a maya autodesk tool that facilitates creating braids for groom purposes
 *IMPORTANT* Make sure to run the script twice as some of the window sliders for clumpTwist and clumpWidth only activate this way.
 *Run through the STEPS top to bottom (order of buttons is top to bottom)*
 
+(copy paste script directly to python shell in MAYA) 
+
 1.Create a nurbCurve (this is up to you on how you do it)
 2.Hit "Create Dynamic Curve" (this creates dynamic curve out of your curve)
 3.Hit "Make Braid" (creates a braid using paintFX)
